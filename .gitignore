@@ -1,0 +1,7 @@
+config/configa.yaml
+config/configb.yaml
+config/configc.yaml
+config/configd.yaml
+config/configv.yaml
+config/configeval.yaml
+.snakemake
