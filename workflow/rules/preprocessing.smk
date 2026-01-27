@@ -147,11 +147,62 @@ rule modify_fastq_naming:
         sed '1~4s/\\/1\\b//' {input.read1} > {output.read1}
         sed '1~4s/\\/2\\b//' {input.read2} > {output.read2}
         """
+rule filter_for_the_second_time:
+    input:
+        fastq1="{data_dir}/{sample}/mapped_filt.read1_mod.fastq",
+        fastq2="{data_dir}/{sample}/mapped_filt.read2_mod.fastq",  
+        reference="/gpfs/project/yogah100/cram_files/resources/kir_reference_2025/ref_with_utr_extended.fa",
+    output:
+        sam=temp("{data_dir}/{sample}/mapped_the_second_time.sam")
+    threads: 72
+    shell:
+        """
+        bwa mem -t {threads} {input.reference} {input.fastq1} {input.fastq2} > {output.sam}
+        """  
+rule sam_to_bam2:
+    input:
+         "{data_dir}/{sample}/mapped_the_second_time.sam"
+    output:
+        "{data_dir}/{sample}/mapped_the_second_time.bam"
+    threads: 72
+    shell:
+        "samtools view -Sb {input} > {output}"
+
+rule filter_unmapped_new_kir2_keep_utrs:
+    input:
+        bam = "{data_dir}/{sample}/mapped_the_second_time.bam",
+        bed = "/gpfs/project/yogah100/kir/resources/kir_reference_2025/kir_allele_names_new_kir_only.bed",   # ROI
+    output:
+        bam = "{data_dir}/{sample}/mapped_filt_new_kir2.bam",
+        roi = temp("{data_dir}/{sample}/roi_tmp2.bam"),
+    threads: 72
+    shell:
+        """
+        samtools view -b -L {input.bed} {input.bam} > {output.roi}
+        samtools sort -@ {threads} -o {output.bam} {output.roi}
+        samtools index -@ {threads} {output.bam}
+        """        
+rule extract_mapped_reads_with_seqkit_new_kir2:
+    input:
+        bam="{data_dir}/{sample}/mapped_filt_new_kir2.bam",
+        fq1="{data_dir}/{sample}/mapped_filt.read1_mod.fastq",
+        fq2="{data_dir}/{sample}/mapped_filt.read2_mod.fastq"
+    output:
+        read1="{data_dir}/{sample}/mapped_filt.read1_new_kir2.fastq",
+        read2="{data_dir}/{sample}/mapped_filt.read2_new_kir2.fastq",
+        names=temp("{data_dir}/{sample}/mapped_names_new_kir2.txt"),
+    threads: 20
+    shell:
+        """
+        samtools view {input.bam} | awk '{{print $1}}' | sort -u > {output.names}
+        seqkit grep -f {output.names} --threads {threads} {input.fq1} > {output.read1}
+        seqkit grep -f {output.names} --threads {threads} {input.fq2} > {output.read2}
+        """                     
 rule proper_mapping_with_new_KIR_4:
     input:
-        read1="{DATA_DIR}/{sample}/mapped_filt.read1_mod.fastq",
-        read2="{DATA_DIR}/{sample}/mapped_filt.read2_mod.fastq",
-        mmi="/gpfs/project/yogah100/cram_files/resources/kir_reference_2025/ref_with_utr_extended.mmi",
+        read1="{DATA_DIR}/{sample}/mapped_filt.read1_new_kir2.fastq",
+        read2="{DATA_DIR}/{sample}/mapped_filt.read2_new_kir2.fastq",
+        mmi='/gpfs/project/yogah100/kir/resources/kir_reference_2025/kir_gen_new_mod_with_utr_extended.fasta',
     output:
         bam1="{DATA_DIR}/{sample}/remapped1_new_kir4.bam",
         bam2="{DATA_DIR}/{sample}/remapped2_new_kir4.bam"

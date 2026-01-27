@@ -1,6 +1,6 @@
 rule filter2:
     input:
-        expand("{data_dir}/{sample}/mpileup4.txt", data_dir= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
+        expand("{data_dir}/{sample}/selected_alleles.txt", data_dir= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
 
 GENES = [
     "KIR2DL1","KIR2DL2","KIR2DL3","KIR2DL4","KIR2DL5A","KIR2DL5B",
@@ -20,9 +20,9 @@ rule pileup4:
    """
    perl workflow/scripts/extractPileUpFrequencies_v2.pl --samtools_bin {params.samtools_bin} --BAM {input.bam} --outputFile {output} --minMappingQuality 0 --minBaseQuality 0 --referenceGenome {input.ref}    
    """
-rule contest3_with_new_KIR4:
+rule filter_alleles_with_no_variant_position_support:
      input:
-          dict= "{DATA_DIR}/{sample}/paired_reads_dict_new_kir_all4.pkl",
+          dict= "{DATA_DIR}/{sample}/alleles_with_no_gaps.pkl",
           bam1="{DATA_DIR}/{sample}/paired_new_kir_sort_all4.bam",
           index="{DATA_DIR}/{sample}/paired_new_kir_sort_all4.bam.bai",
           fasta = ('/gpfs/project/yogah100/cram_files/resources/kir_reference_2025/kir_gen_new_mod_with_utr_extended.fasta'),
@@ -34,11 +34,8 @@ rule contest3_with_new_KIR4:
           bed_intron='/gpfs/project/yogah100/cram_files/resources/kir_reference_2025/annotations_mod_with_utr_extended_intron.bed',
           bed_utr='/gpfs/project/yogah100/cram_files/resources/kir_reference_2025/annotations_mod_with_utr_extended_utr.bed'
      output:
-          scores="{DATA_DIR}/{sample}/exon_count_new_kir_all4.pkl",
-          top_n_per_cluster="{DATA_DIR}/{sample}/intron_count_new_kir_all4.pkl",
-          lost_against="{DATA_DIR}/{sample}/untr_count_new_kir_all4.pkl",
-          number_of_other="{DATA_DIR}/{sample}/selected_alleles_new_kir_all4.txt"
+          number_of_other="{DATA_DIR}/{sample}/selected_alleles.txt"
      threads: 20     
      script:
-          "../scripts/kir_contest_6.py"    
+          "../scripts/filtering_stage2.py"    
           

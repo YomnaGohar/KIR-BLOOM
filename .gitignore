@@ -5,3 +5,7 @@ config/configd.yaml
 config/configv.yaml
 config/configeval.yaml
 .snakemake
+workflow/rules/t1k.smk
+workflow/rules/graphkir.smk
+workflow/scripts/parse_t1k_cn.py
+workflow/scripts/t1k_sequence_modification.py
