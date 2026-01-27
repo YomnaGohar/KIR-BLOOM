@@ -661,8 +661,8 @@ def background_avg_depth_on_sampled_windows(
     sampled_windows = {i: windows[i] for i in sampled_idx}
     return avg_depth_by_window, sampled_windows, sampled_idx
 
-def get_nb_or_binomial_params(mu, var, cn, simulated=True): # consider using poisson only 
-       return (mu, var, 'Poisson')
+# def get_nb_or_binomial_params(mu, var, cn, simulated=True): # consider using poisson only 
+#        return (mu, var, 'Poisson')
 
 def tp_to_read(kir_bam,exon_windows):
     tp_to_reads = defaultdict(lambda: defaultdict(dict))
@@ -766,40 +766,28 @@ def get_window_depth_counts_avg_with_deletions_fast(
 def simulate_cn3_nb(window_assignments, window_sizes, num_samples=10000):
     cn3_assignments = {}
     for w in window_sizes:
-        n1, p1,type_1 = window_assignments[1][w]
-        n2, p2,type_2= window_assignments[2][w]
-        if type_1 == "NegativeBinomial":
-            samples1 = nbinom.rvs(n1, p1, size=num_samples)
-        else: 
-            samples1 = poisson.rvs(n1, size=num_samples)
-        if type_2 == "NegativeBinomial":
-            samples2 = nbinom.rvs(n2, p2, size=num_samples)
-        else: 
-            samples2 = poisson.rvs(n2, size=num_samples)            
+        n1 = window_assignments[1][w] #n1, p1,type_1
+        n2= window_assignments[2][w] # n2, p2,type_2
+        samples1 = poisson.rvs(n1, size=num_samples)
+        samples2 = poisson.rvs(n2, size=num_samples)            
         combined_samples = samples1 + samples2
         mu = np.mean(combined_samples)
-        var = np.var(combined_samples)
-        n3, p3,t = get_nb_or_binomial_params(mu, var,3)
-        cn3_assignments[w] = (n3, p3,t)
+        #var = np.var(combined_samples)
+        #n3, p3,t = get_nb_or_binomial_params(mu, var,3)
+        cn3_assignments[w] = mu #(n3, p3,t)
     return cn3_assignments
 def simulate_cn4_nb(window_assignments, window_sizes, num_samples=10000):
     cn3_assignments = {}
     for w in window_sizes:
-        n1, p1,type_1 = window_assignments[2][w]
-        n2, p2,type_2= window_assignments[2][w]
-        if type_1 == "NegativeBinomial":
-            samples1 = nbinom.rvs(n1, p1, size=num_samples)
-        else: 
-            samples1 = poisson.rvs(n1, size=num_samples)
-        if type_2 == "NegativeBinomial":
-            samples2 = nbinom.rvs(n2, p2, size=num_samples)
-        else: 
-            samples2 = poisson.rvs(n2, size=num_samples)            
+        n1 = window_assignments[2][w] #n1, p1,type_1
+        n2= window_assignments[2][w] #n2, p2,type_2
+        samples1 = poisson.rvs(n1, size=num_samples)
+        samples2 = poisson.rvs(n2, size=num_samples)            
         combined_samples = samples1 + samples2
         mu = np.mean(combined_samples)
-        var = np.var(combined_samples)
-        n3, p3,t = get_nb_or_binomial_params(mu, var,4)
-        cn3_assignments[w] = (n3, p3,t)
+        #var = np.var(combined_samples)
+        #n3, p3,t = get_nb_or_binomial_params(mu, var,4)
+        cn3_assignments[w] = mu# (n3, p3,t)
     return cn3_assignments                   
 def bam_to_read_stats_by_allele_tag(
     kir_bam,
@@ -1027,16 +1015,22 @@ for i in [ snakemake.params.sample ]:
                 region_end=76_000_000,
                 window_size=w,
                 min_base_quality=0,
-                max_windows=2000,      # pick at most this many windows
-            )
+                max_windows=2000)
             f= list(avg_depth_by_window.values())
             mu=np.mean(f)
             var=np.var(f)
             with open(snakemake.output.log, "a") as f:
                 print(c, mu,var,file=f)
-            window_assignments[c][w]=  get_nb_or_binomial_params(mu, var,c)
+            window_assignments[c][w]= mu #get_nb_or_binomial_params(mu, var,c)
     window_assignments[3]=simulate_cn3_nb(window_assignments, lumped_sizes, num_samples=10000)
     window_assignments[4]=simulate_cn4_nb(window_assignments, lumped_sizes, num_samples=10000)
+    window_assignments_avg={}
+    for cn in [0.01,1,2,3,4]:
+        aaa=np.mean(list(window_assignments[cn].values()))
+        window_assignments_avg[cn]={}
+        for w in lumped_sizes:
+            window_assignments_avg[cn][w]=(aaa,"","Poisson")
+
     kir_bam = snakemake.input.paired
     _md_re = re.compile(r'(\d+)|([A-Z]|\^[A-Z]+)')
     output=    snakemake.params.out# f"{path}/kir/real_data/{i}/cn_optimization/29"     
@@ -1046,7 +1040,7 @@ for i in [ snakemake.params.sample ]:
     tag_to_idx    = {tag: i for i, tag in enumerate(all_tags)}
     counts_sparse=build_sparse_counts(tp_to_reads, allele_to_idx, tag_to_idx, allele_lengths)
     paired_dict_with_tag,read_to_tag_name,tag_to_read_name=get_paired_by_mate_info_fast_kir_with_tag(kir_bam,selected_alleles)
-    infer,gene_allele_level,gene_copy_number_dict= forward_backward_selection(paired_dict_with_tag,read_to_tag_name,allele_lengths,result,P_c ,tp_to_reads,window_assignments,output,window_type ,counts_sparse)
+    infer,gene_allele_level,gene_copy_number_dict= forward_backward_selection(paired_dict_with_tag,read_to_tag_name,allele_lengths,result,P_c ,tp_to_reads,window_assignments_avg,output,window_type ,counts_sparse)
     tag_posteriors=compute_tag_posterior_given_read(  paired_dict_with_tag,   read_to_tag_name, infer, min_cn=10**-4)
     avg_depth_by_window, depth_by_pos=get_window_depth_counts_avg_with_deletions_fast(
             result,             # {allele: {win_idx: [(s,e_inclusive), ...]}}
@@ -1064,7 +1058,7 @@ for i in [ snakemake.params.sample ]:
             allele_lengths= allele_lengths,
             windows_by_allele=result, 
             copy_number_dict=infer,
-            window_assignments=window_assignments, 
+            window_assignments=window_assignments_avg, 
             allele_dict=allele_dict,
             exon_ranges=exon_ranges)  
     with open(snakemake.output.cn, "wb") as f:
