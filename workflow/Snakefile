@@ -4,9 +4,12 @@ include: "rules/filtering_stage2.smk"
 include: "rules/EM.smk"
 include: "rules/CN_inference.smk"
 include: "rules/five_digit_inference.smk"
-include: "rules/t1k.smk"
+#include: "rules/t1k.smk"
 include: "rules/variant_calling_and_regenotyping.smk"
 include: "rules/graphkir.smk"
+include: "rules/ping.smk"
+include: "rules/T1k_all_eval.smk"
+
 
 
 

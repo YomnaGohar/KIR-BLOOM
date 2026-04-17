@@ -9,21 +9,14 @@ from itertools import combinations
 import pysam
 from collections import defaultdict
 from collections import Counter
-import matplotlib.pyplot as plt
 import re
 import numpy as np
 import pandas as pd
-from scipy.stats import nbinom, poisson
 import pickle
-from scipy.stats import binom
 from Bio import SeqIO, AlignIO
-import random
 import os
-from matplotlib.patches import Patch
-import math
 import scipy.sparse as sp
 from scipy.sparse import coo_matrix
-
 l=snakemake.input.list
 with open(l) as f:
     allele_dict = {
@@ -33,20 +26,6 @@ with open(l) as f:
     allele_dict_2 = {
      line.strip().split(",")[1] :  "KIR:" + line.split(",")[0] if "KIR" in  line.split(",")[0] else line.split(",")[0] 
         for line in f if not line.startswith("#") and line.strip()}  
-Intron_regions=defaultdict(list)
-with open(snakemake.input.intron) as bed:
-    for line in bed:
-        if line.startswith('#') or not line.strip():
-            continue
-        chrom, start, end = line.strip().split()[:3]
-        Intron_regions[chrom].append((int(start), int(end)))     
-UTR_regions=defaultdict(list)
-with open(snakemake.input.utr) as bed: 
-    for line in bed:
-        if line.startswith('#') or not line.strip():
-            continue
-        chrom, start, end = line.strip().split()[:3]
-        UTR_regions[chrom].append((int(start), int(end)))
 original_seqs = {rec.id: str(rec.seq).replace("-", "") for rec in SeqIO.parse(snakemake.input.fa, "fasta")}
 allele_lengths = {record: len(original_seqs[record])for record in original_seqs}
 msa_files = snakemake.input.msa
@@ -56,7 +35,6 @@ for msa_file in msa_files:
     for rec in alignment:
         seq_dict[rec.id.replace("KIR","")] = str(rec.seq)
 _md_re = re.compile(r'(\d+)|([A-Z]|\^[A-Z]+)')   
-fasta_path=snakemake.input.ref
 def compute_error_Pc_chr17(bam_path, chrom="17"):
     md_re = re.compile(r'(\d+)|([A-Z]|\^[A-Z]+)')
     counts = Counter()
@@ -257,8 +235,6 @@ def compute_weighted_stats_from_tag_posteriors(tag_posteriors, read_stats_by_all
             'deletions': dict(deletions),
             "real_depth":  dict(real_depth)}
     return stats_by_allele
-
-
 def allele_to_gene(allele):
     gene=allele.split('*', 1)[0]
     if gene == "2DL5A" or gene== "2DL5B":
@@ -376,14 +352,14 @@ def lump_exon_intron_windows_equalized_exons(
     gene_to_alleles = defaultdict(list)
     for a in selected_alleles:
         gene_to_alleles[allele_to_gene(allele_dict[a])].append(a)
-
-    # Exon window count per gene (as before: based on shortest exon length)
     K_exon_by_gene = {}
     for g, alleles in gene_to_alleles.items():
-        a_short = min(alleles, key=lambda a: _total_len(exons_norm[a]))
-        wins_short = _lump_segments_into_windows(exons_norm[a_short], window_size_hint, min_exon_window_size)
-        K_exon_by_gene[g] = len(wins_short)
-
+        # build intron windows for each allele with the usual lumping (min size = 100)
+        counts = []
+        for a in alleles:
+            wins = _lump_segments_into_windows(exons_norm[a], window_size_hint, min_exon_window_size)
+            counts.append(len(wins))
+        K_exon_by_gene[g] = min(counts) if counts else 0
     # NEW: Intron window count per gene = MIN number of intron windows across alleles (independent of exons)
     K_intron_by_gene = {}
     for g, alleles in gene_to_alleles.items():
@@ -393,19 +369,22 @@ def lump_exon_intron_windows_equalized_exons(
             wins = _lump_segments_into_windows(introns_norm[a], window_size_hint, min_exon_window_size)
             counts.append(len(wins))
         K_intron_by_gene[g] = min(counts) if counts else 0
-
+        positive_counts = [c for c in counts if c > 0]
+        if positive_counts:
+           K_intron_by_gene[g] = min(positive_counts)
+        else:
+           K_intron_by_gene[g] = 0
     result = defaultdict(dict)
     window_type = defaultdict(dict)
     pos_type = defaultdict(lambda: np.array([], dtype="<U10"))
     lumped_sizes = set()
-
     for a in selected_alleles:
         g = allele_to_gene(allele_dict[a])
         idx = 0
         L = int(allele_lengths[a])
 
         # Per-base labels
-        base_labels = np.full(L, "intergenic", dtype="<U10")
+        base_labels = np.full(L, "utr", dtype="<U10")
         for s, e in exons_norm[a]:
             base_labels[s:e+1] = "exon"
         for s, e in introns_norm[a]:
@@ -610,7 +589,6 @@ def compute_avg_depth_per_window(expected, result, window_type):
     return avg_depth, avg_depth_exon
 with open(snakemake.input.allele_rep, "rb") as f:
     allele_representatives = pickle.load(f)
-
 def ll_column_wise_mapped_divergent(candidate, stats_by_allele, f, seq_dict, pos_type):
     msa_len = len(next(iter(f.values())))
     # depth stays numeric, matches will be per-allele values

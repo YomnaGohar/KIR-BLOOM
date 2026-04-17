@@ -78,8 +78,9 @@ def collect_read_info(bam_path):
                     cigar = read.cigarstring
                     seq = read.query_sequence
                     qual = read.query_qualities
-
-                    read_info_dict[read.query_name].append({
+                    name = read.query_name
+                    name = name.removesuffix("/1").removesuffix("/2")
+                    read_info_dict[name].append({
                         "contig": contig,
                         "start": start,
                         "stop": stop,

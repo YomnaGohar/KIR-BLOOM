@@ -30,36 +30,6 @@ for mapping_path in mapping_paths:
     with open(mapping_path, "rb") as f:
         msa_map = pickle.load(f)
     all_mappings.update(msa_map)
-
-def get_bases_at_position_nodup(bam_path, ref, pos):
-    bases = []
-    seen_templates = set()
-    with pysam.AlignmentFile(bam_path, "rb") as bam:
-        for col in bam.pileup(
-            ref, pos, pos+1,
-            truncate=True,
-            stepper="all",
-            min_base_quality=0,
-            min_mapping_quality=0,
-            flag_filter=0
-        ):
-            if col.reference_pos != pos:
-                continue
-            for pr in col.pileups:
-                read = pr.alignment
-                qname = read.query_name
-                if qname in seen_templates:
-                    continue
-                seen_templates.add(qname)
-                if pr.is_del:
-                    bases.append('-')
-                elif pr.is_refskip:
-                    bases.append('<')
-                elif pr.query_position is not None:
-                    bases.append(read.query_sequence[pr.query_position])
-    return bases
-
-
 # Extract divergent positions and assess presence based on Poisson p-value
 l=snakemake.input.list
 with open(l) as f:
@@ -112,19 +82,6 @@ def in_utr(chrom, pos):
         if s <= pos < e:
             return True
     return False         
-def map_pos_between_alleles(allele1, allele2, target_pos1):
-    aln1 = seq_dict[allele1.upper()]
-    aln2 = seq_dict[allele2.upper()]
-    pos1 = pos2 = 0
-    for i in range(len(aln1)):
-        # if we've reached the target in allele1's ungapped seq
-        if pos1 == target_pos1:
-            return pos2 if pos2 < len(orig2) else None
-        if aln1[i] != '-':
-            pos1 += 1
-        if aln2[i] != '-':
-            pos2 += 1
-    return None
 from collections import defaultdict
 def parse_pileup(pileup_path):
     pileup_data = defaultdict(dict)
@@ -319,4 +276,9 @@ out_path =snakemake.output.number_of_other
 with open(out_path, "w") as out:
     for allele in selected:
         out.write(f"{allele}\n")
+# with open(snakemake.output.intron, "wb") as f:
+#         pickle.dump(allele_position_presence_introns,f)
+ 
+# with open(snakemake.output.exon, "wb") as f:
+#         pickle.dump(allele_position_presence_exons,f) 
  

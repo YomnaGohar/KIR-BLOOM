@@ -14,8 +14,6 @@ import numpy as np
 import os
 from Bio import SeqIO
 import pickle
-output_prefix=snakemake.params.d
-os.makedirs(output_prefix, exist_ok=True)
 with open(snakemake.input.pkl, "rb") as f:
     allele_representatives = pickle.load(f)
 def compute_error_Pc_chr17(bam_path, chrom="17"):
@@ -102,7 +100,6 @@ P_c=compute_error_Pc_chr17(bam_path1, chrom=snakemake.params.chr17)
 bam_path2=snakemake.input.bam_path2
 l=snakemake.input.list
 paired_dict= get_paired_by_mate_info_fast(bam_path2)
-bed_file_all = snakemake.input.bed
 bed_file_exon= snakemake.input.exon
 def parse_exons_bed(bed_file):
     exons = defaultdict(list)
@@ -128,7 +125,6 @@ def parse_exons_bed(bed_file):
         lumped_exons[chrom] = [tuple(m) for m in merged]            
     return lumped_exons
 exon_ranges =parse_exons_bed(bed_file_exon)
-all_ranges=parse_exons_bed(bed_file_all)
 with open(l) as f:
     allele_dict = {
         "KIR:" + line.split(",")[0] if "KIR" in  line.split(",")[0] else line.split(",")[0] : line.strip().split(",")[1]

@@ -38,7 +38,6 @@ with open(l) as f:
 original_seqs = {rec.id: str(rec.seq).replace("-", "") for rec in SeqIO.parse(snakemake.input.fa, "fasta")}
 allele_lengths = {record: len(original_seqs[record])for record in original_seqs}
 _md_re = re.compile(r'(\d+)|([A-Z]|\^[A-Z]+)')   
-fasta_path=snakemake.input.ref
 def compute_error_Pc_chr17(bam_path, chrom="17"):
     md_re = re.compile(r'(\d+)|([A-Z]|\^[A-Z]+)')
     counts = Counter()
@@ -357,7 +356,6 @@ def forward_backward_selection(paired_dict_with_tag,read_to_tag_name,allele_leng
                     best_ll = total_ll
                     best_allele = allele
                     with open(snakemake.output.log, "a") as f:
-                        print(P_c, file=f)
                         print("Forward candidate:", allele_dict[best_allele], best_ll, file=f)
             if best_ll > current_ll:
                 selected_alleles_with_cn[best_allele] += 1
@@ -529,14 +527,6 @@ def lump_exon_intron_windows_equalized_exons(
     gene_to_alleles = defaultdict(list)
     for a in selected_alleles:
         gene_to_alleles[allele_to_gene(allele_dict[a])].append(a)
-
-    # Exon window count per gene (as before: based on shortest exon length)
-    # K_exon_by_gene = {}
-    # for g, alleles in gene_to_alleles.items():
-    #     a_short = min(alleles, key=lambda a: _total_len(exons_norm[a]))
-    #     wins_short = _lump_segments_into_windows(exons_norm[a_short], window_size_hint, min_exon_window_size)
-    #     K_exon_by_gene[g] = len(wins_short)
-
     K_exon_by_gene = {}
     for g, alleles in gene_to_alleles.items():
         # build intron windows for each allele with the usual lumping (min size = 100)
@@ -613,28 +603,15 @@ def make_windows(region_start, region_end, window_size):
         windows.append((w_start, w_end))
     return windows
 
-def sample_window_indices(n_windows, n_sample=100, random_state=42):
-    rng = np.random.default_rng(random_state)
-    return sorted(rng.choice(n_windows, size=n_sample, replace=False).tolist())
-
-def background_avg_depth_on_sampled_windows(
+def background_avg_depth_on_region(
     bam_path,
     contig="NC_000017.11",
     region_start=74_000_000,
     region_end=76_000_000,
-    window_size=150,
-    min_base_quality=0,
-    max_windows=2000,      # pick at most this many windows
-    sample_frac=None,      # or a fraction, e.g. 0.05
-    count_deletions=False,
-    count_refskips=False
+    min_base_quality=0
 ):
-    windows = make_windows(region_start, region_end, window_size)
-    sampled_idx = sample_window_indices(len(windows), n_sample=100)
-    sampled_set = set(sampled_idx)
-    win_len = {i: (windows[i][1] - windows[i][0] + 1) for i in sampled_idx}
-    sum_depth = defaultdict(float)  # window_idx -> total depth across positions seen (zeros implicit)
-
+    total_depth = 0
+    region_length = region_end - region_start +1
     with pysam.AlignmentFile(bam_path, "rb") as bam:
         for col in bam.pileup(
             contig,
@@ -642,27 +619,17 @@ def background_avg_depth_on_sampled_windows(
             region_end,
             truncate=True,
             stepper="all",
-            min_base_quality=min_base_quality
-        ):
+            min_base_quality=min_base_quality):
             pos = col.reference_pos
             if pos < region_start or pos >= region_end:
                 continue
-            widx = (pos - region_start) // window_size
-            if widx not in sampled_set:
-                continue
-            d = 0
+            depth = 0
             for pr in col.pileups:
-                d += 1
-            sum_depth[widx] += d
-    avg_depth_by_window = {
-        i: (sum_depth.get(i, 0.0) / win_len[i]) if win_len[i] > 0 else 0.0
-        for i in sampled_idx
-    }
-    sampled_windows = {i: windows[i] for i in sampled_idx}
-    return avg_depth_by_window, sampled_windows, sampled_idx
+                depth += 1
+            total_depth += depth
+    avg_depth = total_depth / region_length 
+    return avg_depth
 
-# def get_nb_or_binomial_params(mu, var, cn, simulated=True): # consider using poisson only 
-#        return (mu, var, 'Poisson')
 
 def tp_to_read(kir_bam,exon_windows):
     tp_to_reads = defaultdict(lambda: defaultdict(dict))
@@ -760,35 +727,28 @@ def get_window_depth_counts_avg_with_deletions_fast(
                 total_sum += (csum[e_ex] - csum[s0])
             avg_depth_by_window[allele][i] = (total_sum / total_len) if total_len > 0 else 0.0
     return avg_depth_by_window, depth_by_pos
-
-
-
 def simulate_cn3_nb(window_assignments, window_sizes, num_samples=10000):
     cn3_assignments = {}
+    n1 = window_assignments[1][list(window_sizes)[0]][0] 
+    n2= window_assignments[2][list(window_sizes)[0]][0]
+    samples1 = poisson.rvs(n1, size=num_samples)
+    samples2 = poisson.rvs(n2, size=num_samples)            
+    combined_samples = samples1 + samples2
+    mu = np.mean(combined_samples)
     for w in window_sizes:
-        n1 = window_assignments[1][w] #n1, p1,type_1
-        n2= window_assignments[2][w] # n2, p2,type_2
-        samples1 = poisson.rvs(n1, size=num_samples)
-        samples2 = poisson.rvs(n2, size=num_samples)            
-        combined_samples = samples1 + samples2
-        mu = np.mean(combined_samples)
-        #var = np.var(combined_samples)
-        #n3, p3,t = get_nb_or_binomial_params(mu, var,3)
-        cn3_assignments[w] = mu #(n3, p3,t)
+        cn3_assignments[w] = (mu,"","Poisson") #(n3, p3,t)
     return cn3_assignments
 def simulate_cn4_nb(window_assignments, window_sizes, num_samples=10000):
     cn3_assignments = {}
+    n1 = window_assignments[2][list(window_sizes)[0]][0] 
+    n2= window_assignments[2][list(window_sizes)[0]][0] 
+    samples1 = poisson.rvs(n1, size=num_samples)
+    samples2 = poisson.rvs(n2, size=num_samples)            
+    combined_samples = samples1 + samples2
+    mu = np.mean(combined_samples)
     for w in window_sizes:
-        n1 = window_assignments[2][w] #n1, p1,type_1
-        n2= window_assignments[2][w] #n2, p2,type_2
-        samples1 = poisson.rvs(n1, size=num_samples)
-        samples2 = poisson.rvs(n2, size=num_samples)            
-        combined_samples = samples1 + samples2
-        mu = np.mean(combined_samples)
-        #var = np.var(combined_samples)
-        #n3, p3,t = get_nb_or_binomial_params(mu, var,4)
-        cn3_assignments[w] = mu# (n3, p3,t)
-    return cn3_assignments                   
+        cn3_assignments[w] = (mu,"","Poisson")
+    return cn3_assignments                 
 def bam_to_read_stats_by_allele_tag(
     kir_bam,
     selected_alleles,
@@ -850,24 +810,19 @@ def bam_to_read_stats_by_allele_tag(
 def build_sparse_counts(tp_to_reads, allele_to_idx, tag_to_idx, allele_lengths):
     rows, cols, data = [], [], []
     n_tags = len(tag_to_idx)
-
     for allele, tag_dict in tp_to_reads.items():
         if allele not in allele_to_idx:
             continue
         ai = allele_to_idx[allele]
         L = allele_lengths[allele]
-
         for tag, reads in tag_dict.items():
             if tag not in tag_to_idx:
                 continue
             ti = tag_to_idx[tag]
-
-            # process read1 and read2 if present
             for rname in ("read1", "read2"):
                 aln = reads.get(rname)
                 if aln is None or aln.cigartuples is None:
                     continue
-
                 refpos = aln.reference_start
                 for op, ln in aln.cigartuples:
                     if op in (0, 7):  # match
@@ -886,6 +841,12 @@ def build_sparse_counts(tp_to_reads, allele_to_idx, tag_to_idx, allele_lengths):
                                 cols.append(p)
                                 data.append(1)
                         refpos += ln
+                    elif op == 1:  # insertion I done we nned insertion to be included in the depth
+                         feat = 2
+                         if refpos < L:
+                             rows.append((ai*n_tags*4) + (ti*4) + feat)
+                             cols.append(refpos)
+                             data.append(1) # whatever the size of the insertion they are considered one
                     elif op == 2:  # deletion
                         feat = 3
                         for p in range(refpos, refpos + ln):
@@ -896,7 +857,6 @@ def build_sparse_counts(tp_to_reads, allele_to_idx, tag_to_idx, allele_lengths):
                         refpos += ln
                     else:
                         pass
-
     counts_sparse = sp.csr_matrix((data, (rows, cols)))
     return counts_sparse
 def expected_counts_with_features_variable(
@@ -1001,36 +961,20 @@ for i in [ snakemake.params.sample ]:
         exon_ranges,  
         window_size_hint=150,
         min_exon_window_size=100) 
-    cn={0.01:snakemake.input.bam_0_sort,
-        1: snakemake.input.bam_half_sort,
-        2: snakemake.input.bam2} 
+    cn=[0.01,1,2,3,4]
+    avg_depth_by_window_= background_avg_depth_on_region(
+            snakemake.input.bam2,
+            contig=snakemake.params.chr17, #"NC_000017.11"
+            region_start=74_000_000,
+            region_end=76_000_000,
+            min_base_quality=0)
     window_assignments=defaultdict(dict)
     for c in cn:
-        bam_path= cn[c]
+        avg_depth_by_window=avg_depth_by_window_* c/2
         for w in lumped_sizes:
-            avg_depth_by_window, depth_by_pos, window_ranges= background_avg_depth_on_sampled_windows(
-                bam_path,
-                contig=snakemake.params.chr17,
-                region_start=74_000_000,
-                region_end=76_000_000,
-                window_size=w,
-                min_base_quality=0,
-                max_windows=2000)
-            f= list(avg_depth_by_window.values())
-            mu=np.mean(f)
-            var=np.var(f)
-            with open(snakemake.output.log, "a") as f:
-                print(c, mu,var,file=f)
-            window_assignments[c][w]= mu #get_nb_or_binomial_params(mu, var,c)
-    window_assignments[3]=simulate_cn3_nb(window_assignments, lumped_sizes, num_samples=10000)
-    window_assignments[4]=simulate_cn4_nb(window_assignments, lumped_sizes, num_samples=10000)
-    window_assignments_avg={}
-    for cn in [0.01,1,2,3,4]:
-        aaa=np.mean(list(window_assignments[cn].values()))
-        window_assignments_avg[cn]={}
-        for w in lumped_sizes:
-            window_assignments_avg[cn][w]=(aaa,"","Poisson")
-
+            window_assignments[c][w]= (avg_depth_by_window,"","Poisson")#get_nb_or_binomial_params(mu, var,c)
+        with open(snakemake.output.log, "a") as f:
+             print(c,avg_depth_by_window,file=f)
     kir_bam = snakemake.input.paired
     _md_re = re.compile(r'(\d+)|([A-Z]|\^[A-Z]+)')
     output=    snakemake.params.out# f"{path}/kir/real_data/{i}/cn_optimization/29"     
@@ -1040,7 +984,7 @@ for i in [ snakemake.params.sample ]:
     tag_to_idx    = {tag: i for i, tag in enumerate(all_tags)}
     counts_sparse=build_sparse_counts(tp_to_reads, allele_to_idx, tag_to_idx, allele_lengths)
     paired_dict_with_tag,read_to_tag_name,tag_to_read_name=get_paired_by_mate_info_fast_kir_with_tag(kir_bam,selected_alleles)
-    infer,gene_allele_level,gene_copy_number_dict= forward_backward_selection(paired_dict_with_tag,read_to_tag_name,allele_lengths,result,P_c ,tp_to_reads,window_assignments_avg,output,window_type ,counts_sparse)
+    infer,gene_allele_level,gene_copy_number_dict= forward_backward_selection(paired_dict_with_tag,read_to_tag_name,allele_lengths,result,P_c ,tp_to_reads,window_assignments,output,window_type ,counts_sparse)
     tag_posteriors=compute_tag_posterior_given_read(  paired_dict_with_tag,   read_to_tag_name, infer, min_cn=10**-4)
     avg_depth_by_window, depth_by_pos=get_window_depth_counts_avg_with_deletions_fast(
             result,             # {allele: {win_idx: [(s,e_inclusive), ...]}}
@@ -1058,7 +1002,7 @@ for i in [ snakemake.params.sample ]:
             allele_lengths= allele_lengths,
             windows_by_allele=result, 
             copy_number_dict=infer,
-            window_assignments=window_assignments_avg, 
+            window_assignments=window_assignments, 
             allele_dict=allele_dict,
             exon_ranges=exon_ranges)  
     with open(snakemake.output.cn, "wb") as f:
