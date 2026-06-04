@@ -133,18 +133,18 @@ ls -lh resources/*.fai resources/*.amb
 ```
 
 
-### Step 4: Run the Pipeline
+### Step 4: Preprocess Reads and Generate Pairwise Alignments
 
-#### Dry Run
+This step extracts reads mapping to the KIR region and the configured background region, retains their read pairs, and generates all possible pairwise alignments against the KIR allele reference set.
 
-```bash
-snakemake --np extract --configfile config/myconfig.yaml 
-
-```
-
-#### Full Run
 
 ```bash
-snakemake --configfile config/<your_config>.yaml -j 4
-snakemake --configfile config/<your_config>.yaml -j 10 --resources mem_mb=32000
+snakemake --cores 10  extract config/myconfig.yaml 
 ```
+note that `--cores` specifies the maximum number of CPU cores available to the workflow, while `threads` in the configuration file specifies the maximum number of threads that can be used by an individual rule. If a rule requests more threads than are available through `--cores`, Snakemake will automatically scale the thread count down to the maximum number of available cores.
+### Output Files
+
+| File | Description |
+|------|-------------|
+| `mapped_filt_Chr17q25_with_tag_new_kir_tag_sort_all4.bam` | Contains reads mapping to background region. Used to estimate sequencing depth and error rates from the background region. |
+| `paired_new_kir_sort_all4.bam` | Contains the corresponding read pairs on KIR allele reference sequences. |
