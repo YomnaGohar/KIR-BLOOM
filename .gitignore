@@ -4,7 +4,15 @@ config/configc.yaml
 config/configd.yaml
 config/configv.yaml
 config/configeval.yaml
-config/config*
+config/configa_2.yaml
+config/configb_2.yaml
+config/configc_2.yaml
+config/configd_2.yaml
+config/configv_2.yaml
+config/configeval_2.yaml
+config/configeval_local.yaml
+
+
 .snakemake
 workflow/rules/t1k.smk
 workflow/rules/graphkir.smk
