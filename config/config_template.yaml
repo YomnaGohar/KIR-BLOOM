@@ -15,7 +15,7 @@ Reference:
 
 Samples:
   # Output directory for results
-  samples_dir: "path/to/output directory"  # e.g., "./output"
+  samples_dir: "./output" #"path/to/output directory"  # e.g., 
   # Sample specification:
    #List samples directly (for small batches)
   # option1 on is to specify fastq files
@@ -26,13 +26,11 @@ Samples:
     # "sample_2": ["./data/sample_2_R1.fastq.gz", "./data/sample_2_R2.fastq.gz"]
   # option2 on is to specify cram or bam files mapped to GRCh38 reference, and the pipeline will extract reads from KIR regions and convert them to fastq files for processing
     # Example:
-    #"ERR3239454": [ "/gpfs/project/yogah100/cram_files/evaluation/ERR3239454/NA19239.final.cram" ]
+    "ERR3239454": [ "/gpfs/project/yogah100/cram_files/evaluation/ERR3239454/NA19239.final.cram" ]
 # External tools
 bwa_path: null  # BWA-MEM2 executable, e.g., "/opt/bwa-mem2/bwa-mem2"
-# Optional parameters
-parameters:
-  threads: 4  # maximum number of threads for parallel processing
-
-background_region: "chr17:38000000-40000000" # coordinates on GRCh38 to use as beackground to calculate error rates and depth
+# parameters
+threads: 4  # maximum number of threads for parallel processing
+background_region: "chr17:74000000-76000000" # coordinates on GRCh38 to use as beackground to calculate error rates and depth
 
 

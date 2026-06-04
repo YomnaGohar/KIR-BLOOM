@@ -1,4 +1,3 @@
-include: "rules/generate_kir_regions.smk"
 include: "rules/preprocessing.smk"
 include: "rules/filtering_stage1.smk"
 include: "rules/filtering_stage2.smk"

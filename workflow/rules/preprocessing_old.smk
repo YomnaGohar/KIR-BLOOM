@@ -1,7 +1,10 @@
 rule extract:
     input:
-        expand("{DATA_DIR}/{sample}/mapped_filt_Chr17q25_with_tag_new_kir_tag_sort_all4.bam", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
+        expand("{DATA_DIR}/{sample}/mapped.bam", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
+        expand("{DATA_DIR}/{sample}/mapped_filt.read1_mod.fastq", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
+        expand("{DATA_DIR}/{sample}/mapped_filt.read1.fastq", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
         expand("{DATA_DIR}/{sample}/paired_new_kir_sort_all4.bam.bai", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
+        expand("{DATA_DIR}/{sample}/paired_new_kir_all4.bam", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
 
 
 rule extract_reads:
@@ -13,8 +16,8 @@ rule extract_reads:
         bam="{DATA_DIR}/{sample}/mapped.bam"
     threads: min(config["threads"], 30)
     params:
-        tmpdir="{DATA_DIR}/{sample}/tmp",  
-        background_region=config["background_region"] 
+        tmpdir="{DATA_DIR}/{sample}/tmp"   
+        background_region=config["Reference"]["background_region"] 
     run:
         import os
 
@@ -38,19 +41,16 @@ rule extract_reads:
                 # 4. Extract unmapped reads
                 samtools view -@ {threads} -b -T {input.ref} -f 4 {reads} \
                 > {output.bam}.unmapped.bam
-                # 5. Extract background region
-                samtools view -@ {threads} -b -T {input.ref} {reads} {params.background_region} \
-                > {output.bam}.background.bam
 
-                # 6. Merge + sort
+                # 5. Merge + sort
                 samtools merge -@ {threads} -f {output.bam}.merged.bam \
-                {output.bam}.kir.named.bam  {output.bam}.background.bam {output.bam}.unmapped.bam
+                {output.bam}.kir.named.bam {output.bam}.unmapped.bam
 
                 samtools sort -@ {threads} -T {params.tmpdir} -o {output.bam} {output.bam}.merged.bam
 
                 rm -f {output.bam}.kir.tmp* {output.bam}.names.tmp \
                     {output.bam}.kir.named.bam {output.bam}.unmapped.bam \
-                    {output.bam}.merged.bam {output.bam}.background.bam 
+                    {output.bam}.merged.bam
             """)
         elif reads[0].endswith(".fastq") or reads[0].endswith(".fq") or reads[0].endswith(".fastq.gz"):
             bwa = config["bwa_path"]
@@ -81,18 +81,14 @@ rule extract_reads:
                 samtools view -@ {threads} -hb -f 4 {output.bam}.align.tmp \
                 > {output.bam}.unmapped.bam
 
-                # 5. Extract background region
-                samtools view -@ {threads} -hb {output.bam}.align.tmp {params.background_region} \
-                > {output.bam}.background.bam
-
-                # 6. Merge + sort
+                # 5. Merge + sort
                 samtools merge -@ {threads} -f {output.bam}.merged.bam \
-                {output.bam}.kir.named.bam {output.bam}.background.bam {output.bam}.unmapped.bam
+                {output.bam}.kir.named.bam {output.bam}.unmapped.bam
 
                 samtools sort -@ {threads} -T {params.tmpdir} -o {output.bam} {output.bam}.merged.bam
                 samtools index {output.bam}
 
-                # 7. Cleanup
+                # 6. Cleanup
                 rm -f {output.bam}.align.sam \
                     {output.bam}.align.tmp \
                     {output.bam}.kir.tmp* \
@@ -102,8 +98,7 @@ rule extract_reads:
                     {output.bam}.unmapped.bam \
                     {output.bam}.merged.bam \
                     {output.bam}.sort.kir.tmp \
-                    {output.bam}.sort.kir.tmp \
-                    {output.bam}.background.bam
+                    {output.bam}.sort.kir.tmp
             """)
 rule remove_dup_in_bam_files: 
     input:
@@ -118,26 +113,25 @@ rule estimate_insert_size_new_kir:
      input:
           bam="{DATA_DIR}/{sample}/dedup_mapped_noRG.bam",
      output:
-         bam=temp("{DATA_DIR}/{sample}/mapped_filt_Chr17q25.bam"),    
-         kir=temp("{DATA_DIR}/{sample}/mapped_filt_noChr17.bam"),
+         bam="{DATA_DIR}/{sample}/mapped_filt_Chr17q25.bam",    
+         kir="{DATA_DIR}/{sample}/mapped_filt_noChr17.bam",
      params:
-         background_region=config["background_region"],
-         background_region_chr=config["background_region"].split(":")[0]
+         bed=config["background_region"]
      shell:
          """
          samtools index {input.bam}
-         samtools view -b {input.bam} {params.background_region} > {output.bam}
+         samtools view -b {input.bam} chr17:74000000-76000000 > {output.bam}
          samtools index {output.bam}
-         samtools view -b -e 'rname!="{params.background_region_chr}"' {input.bam} > {output.kir}
+         samtools view -b -e 'rname!="chr17"' {input.bam} > {output.kir}
          samtools index {output.kir}
          """          
 rule bam_to_fastq:
     input:
         bam="{DATA_DIR}/{sample}/mapped_filt_noChr17.bam"
     output:
-        read1=temp("{DATA_DIR}/{sample}/mapped_filt.read1.fastq"),
-        read2=temp("{DATA_DIR}/{sample}/mapped_filt.read2.fastq"),
-        sing=temp("{DATA_DIR}/{sample}/singletons.fastq")
+        read1="{DATA_DIR}/{sample}/mapped_filt.read1.fastq",
+        read2="{DATA_DIR}/{sample}/mapped_filt.read2.fastq",
+        sing="{DATA_DIR}/{sample}/singletons.fastq"
     threads: min(config["threads"], 20)
     shell:
         """
@@ -173,7 +167,7 @@ rule sam_to_bam2:
     input:
          "{data_dir}/{sample}/mapped_the_second_time.sam"
     output:
-        temp("{data_dir}/{sample}/mapped_the_second_time.bam")
+        "{data_dir}/{sample}/mapped_the_second_time.bam"
     threads: min(config["threads"], 72)
     shell:
         "samtools view -Sb {input} > {output}"
@@ -196,9 +190,9 @@ rule extract_mapped_reads_with_seqkit_new_kir2:
     input:
         bam="{DATA_DIR}/{sample}/mapped_filt_new_kir2.bam"
     output:
-        read1=temp("{DATA_DIR}/{sample}/mapped_filt.read1_new_kir2.fastq"),
-        read2=temp("{DATA_DIR}/{sample}/mapped_filt.read2_new_kir2.fastq"),
-        sing=temp("{DATA_DIR}/{sample}/Sing_new_kir2.fastq"),
+        read1="{DATA_DIR}/{sample}/mapped_filt.read1_new_kir2.fastq",
+        read2="{DATA_DIR}/{sample}/mapped_filt.read2_new_kir2.fastq",
+        sing="{DATA_DIR}/{sample}/Sing_new_kir2.fastq",
     threads: min(config["threads"], 20)
     shell:
         """
@@ -210,8 +204,8 @@ rule proper_mapping_with_new_KIR_4:
         read2="{DATA_DIR}/{sample}/mapped_filt.read2_new_kir2.fastq",
         mmi= config["Reference"]["KIR_alleles"],
     output:
-        bam1=temp("{DATA_DIR}/{sample}/remapped1_new_kir4.bam"),
-        bam2=temp("{DATA_DIR}/{sample}/remapped2_new_kir4.bam")
+        bam1="{DATA_DIR}/{sample}/remapped1_new_kir4.bam",
+        bam2="{DATA_DIR}/{sample}/remapped2_new_kir4.bam"
     threads: min(config["threads"], 72)
     shell:
         """
@@ -231,7 +225,7 @@ rule pair_with_new_KIR4:
         bam2 = "{DATA_DIR}/{sample}/mapped_filt_Chr17q25_with_tag_new_kir_all4.bam",
     threads: min(config["threads"], 72)
     params:
-          chr17=config["background_region"].split(":")[0]
+          chr17="chr17"
     script:
         "../scripts/pairing.py"  
 rule index_with_new_KIR4:

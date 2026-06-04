@@ -1,7 +1,7 @@
 rule var:
      input:
           expand("{DATA_DIR}/{sample}/kir_variants_in_exons.vcf", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
-          expand("{DATA_DIR}/{sample}/kir_mod_immu.gtf.gz", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
+          #expand("{DATA_DIR}/{sample}/kir_mod_immu.gtf.gz", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
           expand("{DATA_DIR}/{sample}/kir_mod.fa.fai", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
           expand("{DATA_DIR}/{sample}/kir_mod_exon.bed", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
 GENES = [
@@ -52,15 +52,15 @@ rule index_kir_mod_4_per_error:
          """
          samtools faidx {input.mod}
          """     
-rule immuannot_4_per_error:
-      input:
-        mod="{DATA_DIR}/{sample}/kir_mod.fa" 
-      output:
-        mod="{DATA_DIR}/{sample}/kir_mod_immu.gtf.gz"        
-      params:
-        sample = "{DATA_DIR}/{sample}/kir_mod_immu",
-        immu=   config["immuannot"] 
-      shell:  
-       """
-      bash {params.immu} -c {input.mod} -r /gpfs/project/yogah100/Software/Immuannot/scripts.pub.v3/prepare-reference/Data-2025Dez28/ -o {params.sample}    
-       """  
+#rule immuannot_4_per_error:
+#      input:
+#        mod="{DATA_DIR}/{sample}/kir_mod.fa" 
+#      output:
+#        mod="{DATA_DIR}/{sample}/kir_mod_immu.gtf.gz"        
+#      params:
+#        sample = "{DATA_DIR}/{sample}/kir_mod_immu",
+#        immu=   config["immuannot"] 
+#      shell:  
+#       """
+#      bash {params.immu} -c {input.mod} -r /gpfs/project/yogah100/Software/Immuannot/scripts.pub.v3/prepare-reference/Data-2025Dez28/ -o {params.sample}    
+#       """  
