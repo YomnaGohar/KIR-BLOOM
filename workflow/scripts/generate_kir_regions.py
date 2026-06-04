@@ -96,46 +96,115 @@ def parse_fai(fai_path):
     return sequences
 
 
-def generate_kir_regions_bed(fasta_path, output_bed_path):
-    """Auto-generate KIR regions BED file from reference."""
+def build_reference_length_mapping(grchr38_fai_path):
+    """
+    Parse GRCh38.fa.fai and extract lengths for sequences in SEQUENCES_TO_REMOVE.
+    Returns dict: {length: set of sequence names}
+    This allows matching by length across different reference naming schemes.
+    """
+    reference_lengths = {}
 
-    # Index reference
+    if not os.path.exists(grchr38_fai_path):
+        print(f"ERROR: Reference FAI file not found: {grchr38_fai_path}")
+        sys.exit(1)
+
+    print(f"Parsing reference sequences from: {grchr38_fai_path}")
+
+    with open(grchr38_fai_path) as f:
+        for line in f:
+            parts = line.strip().split('\t')
+            if len(parts) >= 2:
+                name = parts[0]
+                length = int(parts[1])
+
+                # Only include sequences that are in SEQUENCES_TO_REMOVE
+                if name in SEQUENCES_TO_REMOVE:
+                    if length not in reference_lengths:
+                        reference_lengths[length] = set()
+                    reference_lengths[length].add(name)
+
+    print(f"Found {len(reference_lengths)} unique lengths for KIR regions")
+    return reference_lengths
+
+
+def generate_kir_regions_bed(fasta_path, output_bed_path, grchr38_fai_path=None):
+    """
+    Auto-generate KIR regions BED file from reference.
+    Matches user sequences by length against GRCh38 reference sequences.
+
+    Args:
+        fasta_path: Path to user's reference FASTA
+        output_bed_path: Output BED file path
+        grchr38_fai_path: Path to GRCh38.fa.fai (if None, uses default location)
+    """
+
+    # Determine GRCh38 FAI path
+    if grchr38_fai_path is None:
+        # Look for it in resources directory relative to script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(script_dir))
+        grchr38_fai_path = os.path.join(project_root, "resources", "GRCh38.fa.fai")
+
+    # Index user reference
     fai_path = index_reference(fasta_path)
+    user_sequences = parse_fai(fai_path)  # {name: length}
 
-    # Parse sequences
-    sequences = parse_fai(fai_path)
+    # Parse GRCh38 reference lengths
+    ref_lengths_map = build_reference_length_mapping(grchr38_fai_path)  # {length: set of names}
 
-    print(f"Found {len(sequences)} sequences in reference")
+    # Create inverse mapping: {length: name} for user reference
+    user_lengths = {}
+    for user_name, length in user_sequences.items():
+        user_lengths[length] = user_name
+
+    print(f"Found {len(user_sequences)} sequences in user reference")
+    print(f"Matching against {sum(len(names) for names in ref_lengths_map.values())} known KIR sequences")
 
     # Write BED file
     matched_count = 0
+    matched_sequences = set()
+
     with open(output_bed_path, "w") as out:
         # Add chr19 region (standard KIR region)
         out.write("chr19\t52025634\t57084318\n")
         matched_count += 1
 
-        # Add alternate chr19 representations based on sequence names
-        for seq_name, length in sequences.items():
-            if seq_name in SEQUENCES_TO_REMOVE:
-                out.write(f"{seq_name}\t0\t{length}\n")
-                matched_count += 1
+        # Match user sequences by length
+        for length, ref_names in ref_lengths_map.items():
+            # Check if this length exists in user reference
+            if length in user_lengths:
+                user_name = user_lengths[length]
+                # Only add if not already added
+                if user_name not in matched_sequences:
+                    out.write(f"{user_name}\t0\t{length}\n")
+                    matched_count += 1
+                    matched_sequences.add(user_name)
 
     print(f"Generated KIR regions BED: {output_bed_path}")
     print(f"Included {matched_count} sequences (1 chr19 + {matched_count - 1} alts)")
+    print(f"Matched {len(matched_sequences)} alternate chr19 representations by length")
     return output_bed_path
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: generate_kir_regions.py <reference.fa> [output.bed]")
+        print("Usage: generate_kir_regions.py <reference.fa> [output.bed] [GRCh38.fa.fai]")
         sys.exit(1)
 
     fasta_path = sys.argv[1]
-    output_bed = sys.argv[2] if len(sys.argv) > 2 else f"{fasta_path%.fa*}_kir_regions.bed"
+
+    if len(sys.argv) > 2:
+        output_bed = sys.argv[2]
+    else:
+        # Remove extension and add _kir_regions.bed
+        base_name = fasta_path.rsplit('.', 1)[0]
+        output_bed = f"{base_name}_kir_regions.bed"
+
+    grchr38_fai = sys.argv[3] if len(sys.argv) > 3 else None
 
     if not os.path.exists(fasta_path):
         print(f"ERROR: Reference file not found: {fasta_path}")
         sys.exit(1)
 
-    generate_kir_regions_bed(fasta_path, output_bed)
+    generate_kir_regions_bed(fasta_path, output_bed, grchr38_fai)
 

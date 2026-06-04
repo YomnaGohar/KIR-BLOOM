@@ -9,8 +9,7 @@
 
 set -e  # Exit on error
 
-RESOURCES_DIR="resources/kir_reference_2025"
-
+RESOURCES_DIR="resources"
 # Create directories if they don't exist
 mkdir -p "$RESOURCES_DIR"
 
@@ -19,13 +18,12 @@ echo "KIR-BLOOM Reference Download Tool"
 echo "=================================="
 echo ""
 
-# These are example URLs - REPLACE with your actual hosting URLs
-# For example, from Zenodo, Figshare, Google Drive, institutional server, etc.
-
-FASTA_2_URL="https://your-url-here/ref_with_utr_extended.fa.gz"
-KIR_ALLELES_URL="https://your-url-here/kir_gen_new_mod_with_utr_extended.fasta.gz"
-GRCH38_URL="https://your-url-here/GRCh38_full_analysis_set_plus_decoy_hla.fa.gz"
-MSA_URL="https://your-url-here/msa_after_utr_extension.tar.gz"
+# Using Zenodo dataset at https://zenodo.org/records/20532512
+# These direct file URLs point to the files uploaded to that record.
+FASTA_2_URL="https://zenodo.org/record/20532512/files/ref_with_utr_extended.fa.gz"
+KIR_ALLELES_URL="https://zenodo.org/record/20532512/files/kir_gen_new_mod_with_utr_extended.fasta.gz"
+GRCH38_URL="https://zenodo.org/record/20532512/files/GRCh38_full_analysis_set_plus_decoy_hla.fa.gz"
+MSA_URL="https://zenodo.org/record/20532512/files/msa_after_utr_extension.tar"
 
 # Function to download and verify file
 download_file() {
@@ -84,18 +82,18 @@ download_file "$KIR_ALLELES_URL" "$RESOURCES_DIR/kir_gen_new_mod_with_utr_extend
 decompress_if_needed "$RESOURCES_DIR/kir_gen_new_mod_with_utr_extended.fasta.gz"
 
 # 3. GRCh38 reference
-download_file "$GRCH38_URL" "resources/GRCh38_full_analysis_set_plus_decoy_hla.fa.gz" "GRCh38 reference genome"
-decompress_if_needed "resources/GRCh38_full_analysis_set_plus_decoy_hla.fa.gz"
+download_file "$GRCH38_URL" "$RESOURCES_DIR/GRCh38_full_analysis_set_plus_decoy_hla.fa.gz" "GRCh38 reference genome"
+decompress_if_needed "$RESOURCES_DIR/GRCh38_full_analysis_set_plus_decoy_hla.fa.gz"
 
 # 4. MSA archive
 if [ ! -d "$RESOURCES_DIR/msa_after_utr_extension" ]; then
     echo ""
     echo "⬇ Downloading MSA data..."
-    download_file "$MSA_URL" "$RESOURCES_DIR/msa_after_utr_extension.tar.gz" "MSA archive"
+    download_file "$MSA_URL" "$RESOURCES_DIR/msa_after_utr_extension.tar" "MSA archive"
 
     echo "  Extracting MSA archive..."
-    tar -xzf "$RESOURCES_DIR/msa_after_utr_extension.tar.gz" -C "$RESOURCES_DIR"
-    rm "$RESOURCES_DIR/msa_after_utr_extension.tar.gz"
+    tar -xf "$RESOURCES_DIR/msa_after_utr_extension.tar" -C "$RESOURCES_DIR"
+    rm "$RESOURCES_DIR/msa_after_utr_extension.tar"
     echo "  ✓ MSA extracted"
 else
     echo "✓ MSA directory already exists"
@@ -105,18 +103,3 @@ echo ""
 echo "=================================="
 echo "✓ Download complete!"
 echo "=================================="
-echo ""
-echo "Next steps:"
-echo "1. Verify files are in the resources directory:"
-echo "   ls -lh resources/"
-echo "   ls -lh resources/kir_reference_2025/"
-echo ""
-echo "2. Update config/myconfig.yaml with your file paths"
-echo ""
-echo "3. Validate configuration:"
-echo "   python workflow/scripts/validate_config.py config/myconfig.yaml"
-echo ""
-echo "4. Run pipeline:"
-echo "   snakemake --configfile config/myconfig.yaml -j 4"
-echo ""
-

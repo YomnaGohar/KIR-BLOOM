@@ -23,4 +23,20 @@ workflow/scripts/possible_*
 workflow/scripts/intron_detection.py*
 workflow/rules/equi_genotype.smk
 
+# Large reference files - download separately (see SETUP.md)
+resources/GRCh38_full_analysis_set_plus_decoy_hla.fa*
+resources/kir_reference.fa*
+resources/ref_with_utr_extended.fa*
+resources/kir_gen_new_mod_with_utr_extended.fasta*
+resources/msa_after_utr_extension/
 
+# Output and logs
+output/
+*.log
+.snakemake/
+
+# Python and IDE cache
+__pycache__/
+*.pyc
+.idea/
+.vscode/

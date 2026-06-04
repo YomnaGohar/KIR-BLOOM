@@ -14,7 +14,7 @@ rule extract_reads:
         bed=config["Reference"]["KIR_regions_bed"]
     output:
         bam="{DATA_DIR}/{sample}/mapped.bam"
-    threads: 30
+    threads: min(config["threads"], 30)
     params:
         tmpdir="{DATA_DIR}/{sample}/tmp"    
     run:
@@ -114,6 +114,8 @@ rule estimate_insert_size_new_kir:
      output:
          bam="{DATA_DIR}/{sample}/mapped_filt_Chr17q25.bam",    
          kir="{DATA_DIR}/{sample}/mapped_filt_noChr17.bam",
+     params:
+         bed=config["background_region"]
      shell:
          """
          samtools index {input.bam}
@@ -129,7 +131,7 @@ rule bam_to_fastq:
         read1="{DATA_DIR}/{sample}/mapped_filt.read1.fastq",
         read2="{DATA_DIR}/{sample}/mapped_filt.read2.fastq",
         sing="{DATA_DIR}/{sample}/singletons.fastq"
-    threads: 20
+    threads: min(config["threads"], 20)
     shell:
         """
         picard SamToFastq I={input.bam} F={output.read1}  F2={output.read2} FU={output.sing}  VALIDATION_STRINGENCY=SILENT
@@ -153,7 +155,7 @@ rule filter_for_the_second_time:
         reference=config["Reference"]["fasta_2"],
     output:
         sam=temp("{DATA_DIR}/{sample}/mapped_the_second_time.sam")
-    threads: 72
+    threads: min(config["threads"], 72)
     params: 
         bwa=config["bwa_path"]
     shell:
@@ -165,7 +167,7 @@ rule sam_to_bam2:
          "{data_dir}/{sample}/mapped_the_second_time.sam"
     output:
         "{data_dir}/{sample}/mapped_the_second_time.bam"
-    threads: 72
+    threads: min(config["threads"], 72)
     shell:
         "samtools view -Sb {input} > {output}"
 
@@ -176,7 +178,7 @@ rule filter_unmapped_new_kir2_keep_utrs:
     output:
         bam = "{DATA_DIR}/{sample}/mapped_filt_new_kir2.bam",
         roi = temp("{DATA_DIR}/{sample}/roi_tmp2.bam"),
-    threads: 72
+    threads: min(config["threads"], 72)
     shell:
         """
         samtools view -b -L {input.bed} {input.bam} > {output.roi}
@@ -190,7 +192,7 @@ rule extract_mapped_reads_with_seqkit_new_kir2:
         read1="{DATA_DIR}/{sample}/mapped_filt.read1_new_kir2.fastq",
         read2="{DATA_DIR}/{sample}/mapped_filt.read2_new_kir2.fastq",
         sing="{DATA_DIR}/{sample}/Sing_new_kir2.fastq",
-    threads: 20
+    threads: min(config["threads"], 20)
     shell:
         """
         picard SamToFastq I={input.bam} F={output.read1}  F2={output.read2} FU={output.sing}  VALIDATION_STRINGENCY=SILENT
@@ -203,7 +205,7 @@ rule proper_mapping_with_new_KIR_4:
     output:
         bam1="{DATA_DIR}/{sample}/remapped1_new_kir4.bam",
         bam2="{DATA_DIR}/{sample}/remapped2_new_kir4.bam"
-    threads: 72
+    threads: min(config["threads"], 72)
     shell:
         """
         minimap2 -ax sr --secondary-seq --MD --eqx --secondary=yes -N 2000 -t {threads} {input.mmi} {input.read1} | samtools view -b | samtools view -hF 4 | samtools sort > {output.bam1}
@@ -220,7 +222,7 @@ rule pair_with_new_KIR4:
     output:
         bam1 = "{DATA_DIR}/{sample}/paired_new_kir_all4.bam",
         bam2 = "{DATA_DIR}/{sample}/mapped_filt_Chr17q25_with_tag_new_kir_all4.bam",
-    threads: 72
+    threads: min(config["threads"], 72)
     params:
           chr17="chr17"
     script:
