@@ -965,8 +965,8 @@ for i in [ snakemake.params.sample ]:
     avg_depth_by_window_= background_avg_depth_on_region(
             snakemake.input.bam2,
             contig=snakemake.params.chr17, #"NC_000017.11"
-            region_start=74_000_000,
-            region_end=76_000_000,
+            region_start=snakemake.params.start,
+            region_end=snakemake.params.end,
             min_base_quality=0)
     window_assignments=defaultdict(dict)
     for c in cn:
@@ -1008,4 +1008,9 @@ for i in [ snakemake.params.sample ]:
     with open(snakemake.output.cn, "wb") as f:
             pickle.dump(gene_copy_number_dict, f)   
     with open(snakemake.output.allele, "wb") as f:
-            pickle.dump(gene_allele_level, f)  
+            pickle.dump(gene_allele_level, f) 
+
+pd.DataFrame(
+    gene_copy_number_dict.items(),
+    columns=["gene", "cn"]
+).to_csv(snakemake.output.tab, sep="\t", index=False)         

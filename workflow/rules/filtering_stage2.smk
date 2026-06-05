@@ -14,8 +14,8 @@ rule pileup4:
   output:
     "{DATA_DIR}/{sample}/mpileup4.txt"
   params:
-    samtools_bin="/home/yogah100/miniforge3/envs/medaka2/bin/samtools"
-  threads: 10 
+    samtools_bin=config["samtools_path"]
+  threads: min(config["threads"], 5)
   shell:  
    """
    perl workflow/scripts/extractPileUpFrequencies_v2.pl --samtools_bin {params.samtools_bin} --BAM {input.bam} --outputFile {output} --minMappingQuality 0 --minBaseQuality 0 --referenceGenome {input.ref}    
@@ -37,7 +37,7 @@ rule filter_alleles_with_no_variant_position_support:
           number_of_other="{DATA_DIR}/{sample}/selected_alleles.txt",
           #intron="{DATA_DIR}/{sample}/intron_count_new_kir_all3.pkl",
           #exon="{DATA_DIR}/{sample}/exon_count_new_kir_all3.pkl",
-     threads: 20     
+     threads: min(config["threads"], 5)  
      script:
           "../scripts/filtering_stage2.py"    
           

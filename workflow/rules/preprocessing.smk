@@ -23,6 +23,7 @@ rule extract_reads:
             shell("""
                 mkdir -p {params.tmpdir}
                 # 1. Reads overlapping KIR regions
+                samtools index {reads}
                 samtools view -@ {threads} -b -T {input.ref} -L {input.bed} {reads} \
                 > {output.bam}.kir.tmp
                 samtools index {output.bam}.kir.tmp

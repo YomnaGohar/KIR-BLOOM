@@ -120,7 +120,7 @@ Then edit `config/myconfig.yaml` with your paths.
 
 ### Step 3: Index Reference Files
 
-Index the reference FASTA files and create BWA indices (replace `<your_config>` with your config file):
+Index the reference FASTA files and create BWA indices
 
 ```bash
 # Inside KIR-BlOOM directory run 
@@ -148,3 +148,36 @@ note that `--cores` specifies the maximum number of CPU cores available to the w
 |------|-------------|
 | `mapped_filt_Chr17q25_with_tag_new_kir_tag_sort_all4.bam` | Contains reads mapping to background region. Used to estimate sequencing depth and error rates from the background region. |
 | `paired_new_kir_sort_all4.bam` | Contains the corresponding read pairs on KIR allele reference sequences. |
+
+## Step 5: Filter Candidate Alleles
+
+This step filters for candidate alleles to reduce the solution space. These candidate alleles are carried forward to the copy number estimation and allele selection stages.
+
+
+```bash
+snakemake --cores 10 filter --configfile config/myconfig.yaml
+```
+
+### Output Files
+
+| File | Description |
+|------|-------------|
+| `selected.txt` | Contains the candidate alleles selected after filtering. |
+| `alleles_scored_and_grouped_by_genes.pkl` | scoring of alleles from EM algorithm which is used during CN estimation. |
+
+## Step 6: Copy Number Inference
+
+This step estimates the copy number for each KIR gene using the filtered candidate alleles and the background-based depth information.
+
+To run the copy number inference step:
+
+```bash
+snakemake --cores 10 cn --configfile config/myconfig.yaml
+```
+
+### Output Files
+
+| File | Description |
+|------|-------------|
+| `cn.tsv` | Contains the genes and their estimated copy numbers. |
+| `coverage_plot_after_cn_inference.pdf` | coverage plot of the alleles selected during copy number inference step not that those alleles will changes after allele inference step. |

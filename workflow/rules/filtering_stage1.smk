@@ -12,7 +12,7 @@ rule filter_alleles_with_gaps:
         utr=config["Reference"]["utr_bed"],
         exon= config["Reference"]["exon_bed"],
     output:
-        dict= "{DATA_DIR}/{sample}/alleles_with_no_gaps.pkl"
-    threads: 72
+        dict= temp("{DATA_DIR}/{sample}/alleles_with_no_gaps.pkl")
+    threads: min(config["threads"], 5)
     script:
         "../scripts/filtering_stage1.py"  

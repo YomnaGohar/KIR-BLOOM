@@ -13,11 +13,14 @@ rule CN_inference:
         allele_rep=config["Reference"]["rep"],
     output:
         cn="{DATA_DIR}/{sample}/cn.pkl",
+        tab="{DATA_DIR}/{sample}/cn.tsv",
         allele="{DATA_DIR}/{sample}/cn_and_allele.pkl",
-        log="{DATA_DIR}/{sample}/script.log"     
+        log="{DATA_DIR}/{sample}/cn.log"     
     params:
         sample = "{sample}",
         out= "{DATA_DIR}/{sample}",
-        chr17="chr17" 
+        chr17=config["background_region"].split(":")[0],
+        start=int(config["background_region"].split(":")[1].split("-")[0]),
+        end=int(config["background_region"].split(":")[1].split("-")[1])
     script:
         "../scripts/Infer_CN.py" 

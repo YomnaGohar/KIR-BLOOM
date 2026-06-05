@@ -1,21 +1,21 @@
 Reference:
   # don't change these unless you are not using resources directory inside this repository
-  fasta: "./resources/GRCh38_full_analysis_set_plus_decoy_hla.fa"
-  KIR_regions_bed: "./resources/kir_regions.bed"
-  fasta_2: "./resources/ref_with_utr_extended.fa"
-  KIR_alleles: "./resources/kir_gen_new_mod_with_utr_extended.fasta"
-  KIR_alleles_bed: "./resources/kir_allele_names_new_kir_only.bed"
-  exon_bed: "./resources/annotations_mod_with_utr_extended_exon.bed"
-  intron_bed: "./resources/annotations_mod_with_utr_extended_intron.bed"
-  utr_bed: "./resources/annotations_mod_with_utr_extended_utr.bed"
-  msa_path: "./resources/msa_after_utr_extension"
-  msa_mappings_path:  "./resources/msa_after_utr_extension/msa_mappings"
-  Allele_list: "./resources/Allelelist.txt"
-  rep:  "./resources/allele_representatives_new_kir.pkl"
+  fasta: "resources/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+  KIR_regions_bed: "resources/kir_regions.bed"
+  fasta_2: "resources/ref_with_utr_extended.fa"
+  KIR_alleles: "resources/kir_gen_new_mod_with_utr_extended.fasta"
+  KIR_alleles_bed: "resources/kir_allele_names_new_kir_only.bed"
+  exon_bed: "resources/annotations_mod_with_utr_extended_exon.bed"
+  intron_bed: "resources/annotations_mod_with_utr_extended_intron.bed"
+  utr_bed: "resources/annotations_mod_with_utr_extended_utr.bed"
+  msa_path: "resources/msa_after_utr_extension"
+  msa_mappings_path:  "resources/msa_after_utr_extension/msa_mappings"
+  Allele_list: "resources/Allelelist.txt"
+  rep:  "resources/allele_representatives_new_kir.pkl"
 
 Samples:
   # Output directory for results
-  samples_dir: "./output" #"path/to/output directory"  # e.g., 
+  samples_dir: "output" #"path/to/output directory"  # e.g., 
   # Sample specification:
    #List samples directly (for small batches)
   # option1 on is to specify fastq files
@@ -27,8 +27,9 @@ Samples:
   # option2 on is to specify cram or bam files mapped to GRCh38 reference, and the pipeline will extract reads from KIR regions and convert them to fastq files for processing
     # Example:
     "ERR3239454": [ "/gpfs/project/yogah100/cram_files/evaluation/ERR3239454/NA19239.final.cram" ]
-# External tools
-bwa_path: null  # BWA-MEM2 executable, e.g., "/opt/bwa-mem2/bwa-mem2"
+# External tools (required)
+bwa_path: /gpfs/project/yogah100/Software/bwa-mem2-2.2.1_x64-linux/bwa-mem2  # BWA-MEM2 executable, e.g., "/opt/bwa-mem2/bwa-mem2"
+samtools_path: ~/miniforge3/envs/medaka2/bin/samtools #path to samtools
 # parameters
 threads: 4  # maximum number of threads for parallel processing
 background_region: "chr17:74000000-76000000" # coordinates on GRCh38 to use as beackground to calculate error rates and depth

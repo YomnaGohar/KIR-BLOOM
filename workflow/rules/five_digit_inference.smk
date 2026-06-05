@@ -20,7 +20,9 @@ rule  five_digit_inf:
     params:
         sample = "{sample}",
         out= "{DATA_DIR}/{sample}/" ,
-        chr17="chr17"  
+        chr17=config["background_region"].split(":")[0],
+        start=config["background_region"].split(":")[1].split("-")[0],
+        end=config["background_region"].split(":")[1].split("-")[1] 
     threads: 4      
     script:
         "../scripts/five_digit_allele_inference.py" 
