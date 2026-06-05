@@ -1,4 +1,4 @@
-rule var:
+rule infer:
      input:
           expand("{DATA_DIR}/{sample}/kir_variants_in_exons.vcf", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
           #expand("{DATA_DIR}/{sample}/kir_mod_immu.gtf.gz", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
@@ -43,15 +43,15 @@ rule modify_allele4_per_error:
      script:   
        "../scripts/correct_the_allele.py"  
       
-rule index_kir_mod_4_per_error:
-     input:
-        mod="{DATA_DIR}/{sample}/kir_mod.fa" 
-     output:
-        mod="{DATA_DIR}/{sample}/kir_mod.fa.fai" 
-     shell:
-         """
-         samtools faidx {input.mod}
-         """     
+#rule index_kir_mod_4_per_error:
+#     input:
+#        mod="{DATA_DIR}/{sample}/kir_mod.fa" 
+#     output:
+#        mod="{DATA_DIR}/{sample}/kir_mod.fa.fai" 
+#     shell:
+#         """
+#         samtools faidx {input.mod}
+#         """     
 #rule immuannot_4_per_error:
 #      input:
 #        mod="{DATA_DIR}/{sample}/kir_mod.fa" 

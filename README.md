@@ -180,4 +180,30 @@ snakemake --cores 10 cn --configfile config/myconfig.yaml
 | File | Description |
 |------|-------------|
 | `cn.tsv` | Contains the genes and their estimated copy numbers. |
-| `coverage_plot_after_cn_inference.pdf` | coverage plot of the alleles selected during copy number inference step not that those alleles will changes after allele inference step. |
+| `coverage_plot_after_cn_inference.pdf` | coverage plot of the alleles selected during copy number inference step. Note that those alleles might changes after allele inference step. |
+
+## Step 7: Five digit Allele Inference and variant calling
+
+This step uses the previously inferred copy number as a constraint and selects the combination of alleles that best explains the observed sequencing data.
+
+> **Note**
+>
+> KIR*BLOOM reports full-length allele sequences. However, the most reliable part of the prediction corresponds to the coding sequence (CDS). Intronic and other non-coding regions are not explicitly considered during allele selection and should therefore be interpreted with caution.
+
+
+```bash
+snakemake --cores 10 infer --configfile config/myconfig.yaml
+```
+
+### Output Files
+
+| File | Description |
+|------|-------------|
+| `five_digit_allele_inference.tsv` | Contains the inferred alleles and their copy numbers prior to variant calling. |
+| `five_digit_allele_inference.pdf` | Coverage plots for the alleles selected during the 5-digit allele inference step. |
+| `kir_variants_in_exons.vcf` | VCF file containing the predicted variants in exonic regions. |
+| `kir_mod.fa` | Modified allele sequences after incorporating the predicted variants. |
+| `kir_mod_exon.bed` | BED file containing exon coordinates after incorporating the predicted variants. |
+
+
+

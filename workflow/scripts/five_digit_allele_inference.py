@@ -1205,7 +1205,6 @@ paired_dict_with_tag,read_to_tag_name,tag_to_read_name=get_paired_by_mate_info_f
 threshold= 0.2
 infer,gene_allele_level_new= forward_backward_selection(paired_dict_with_tag,read_to_tag_name,allele_lengths,result,P_c ,tp_to_reads,window_assignments,output,window_type ,counts_sparse,gene_copy_number_dict,gene_allele_level,threshold)
 infer={a: infer[a] for a in infer if infer[a] > 0.01}
-infer={a: infer[a] for a in infer if infer[a] > 0.01}
 tag_posteriors=compute_tag_posterior_given_read(  paired_dict_with_tag,   read_to_tag_name, infer, min_cn=10**-300)
 avg_depth_by_window, depth_by_pos=get_window_depth_counts_avg_with_deletions_fast(
         result,             # {allele: {win_idx: [(s,e_inclusive), ...]}}
@@ -1230,3 +1229,8 @@ plot_depth_full_length(
         exon_ranges=exon_ranges)                 # {allele: [(start,end), ...]} in genomic coord)
 with open(snakemake.output.allele_local, "wb") as f: #f"{path}/kir/real_data/{i}/cn_optimization/29/29_allele_local.pkl"
         pickle.dump(gene_allele_level_new, f)  
+
+pd.DataFrame(
+    {allele_dict[a]: infer[a] for a in infer}.items(),
+    columns=["Allele", "cn"]
+).to_csv(snakemake.output.tab, sep="\t", index=False)         

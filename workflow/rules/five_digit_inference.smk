@@ -1,4 +1,4 @@
-rule infer:
+rule infer0:
      input:
         expand("{DATA_DIR}/{sample}/five_digit_allele_inference.pdf" ,DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"])
 rule  five_digit_inf:         
@@ -13,7 +13,8 @@ rule  five_digit_inf:
         paired="{DATA_DIR}/{sample}/paired_new_kir_sort_all4.bam",
         allele_rep=config["Reference"]["rep"],             
     output:
-        allele_local="{DATA_DIR}/{sample}/five_digit_allele_inference.pkl",
+        allele_local=temp("{DATA_DIR}/{sample}/five_digit_allele_inference.pkl"),
+        tab="{DATA_DIR}/{sample}/five_digit_allele_inference.tsv",
         output_bam_2="{DATA_DIR}/{sample}/read_assignment.bam",
         pdf="{DATA_DIR}/{sample}/five_digit_allele_inference.pdf",
         log="{DATA_DIR}/{sample}/five_digit_allele_inference.log"
@@ -21,8 +22,8 @@ rule  five_digit_inf:
         sample = "{sample}",
         out= "{DATA_DIR}/{sample}/" ,
         chr17=config["background_region"].split(":")[0],
-        start=config["background_region"].split(":")[1].split("-")[0],
-        end=config["background_region"].split(":")[1].split("-")[1] 
-    threads: 4      
+        start=int(config["background_region"].split(":")[1].split("-")[0]),
+        end=int(config["background_region"].split(":")[1].split("-")[1])
+    threads:  min(config["threads"], 4)  
     script:
         "../scripts/five_digit_allele_inference.py" 

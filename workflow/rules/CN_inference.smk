@@ -1,6 +1,6 @@
 rule cn:
     input:
-        expand("{DATA_DIR}/{sample}/cn.pkl", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
+        expand("{DATA_DIR}/{sample}/cn.tsv", DATA_DIR= config["Samples"]["samples_dir"],sample=config["Samples"]["sample_fastqs"]),
 
 rule CN_inference:
     input:
@@ -12,7 +12,7 @@ rule CN_inference:
         paired="{DATA_DIR}/{sample}/paired_new_kir_sort_all4.bam",
         allele_rep=config["Reference"]["rep"],
     output:
-        cn="{DATA_DIR}/{sample}/cn.pkl",
+        cn=temp("{DATA_DIR}/{sample}/cn.pkl"),
         tab="{DATA_DIR}/{sample}/cn.tsv",
         allele="{DATA_DIR}/{sample}/cn_and_allele.pkl",
         log="{DATA_DIR}/{sample}/cn.log"     
