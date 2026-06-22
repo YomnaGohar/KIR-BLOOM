@@ -113,7 +113,7 @@ conda install -c bioconda samtools
 **Create your own config file by copying from a template:**
 
 ```bash
-cp config/example_config.yaml config/myconfig.yaml
+cp config/config_template.yaml config/myconfig.yaml
 ```
 
 Then edit `config/myconfig.yaml` with your paths.
