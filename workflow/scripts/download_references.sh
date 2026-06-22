@@ -21,7 +21,7 @@ echo ""
 # Using Zenodo dataset at https://zenodo.org/records/20532512
 # These direct file URLs point to the files uploaded to that record.
 FASTA_2_URL="https://zenodo.org/record/20532512/files/ref_with_utr_extended.fa.gz"
-KIR_ALLELES_URL="https://zenodo.org/record/20532512/files/kir_gen_new_mod_with_utr_extended.fasta.gz"
+KIR_ALLELES_URL="https://zenodo.org/record/20532512/files/kir_gen_new_mod_with_utr_extended.fasta"
 GRCH38_URL="https://zenodo.org/record/20532512/files/GRCh38_full_analysis_set_plus_decoy_hla.fa.gz"
 MSA_URL="https://zenodo.org/record/20532512/files/msa_after_utr_extension.tar"
 
