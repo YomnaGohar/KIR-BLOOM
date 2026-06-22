@@ -78,7 +78,7 @@ download_file "$FASTA_2_URL" "$RESOURCES_DIR/ref_with_utr_extended.fa.gz" "KIR r
 decompress_if_needed "$RESOURCES_DIR/ref_with_utr_extended.fa.gz"
 
 # 2. KIR alleles FASTA
-download_file "$KIR_ALLELES_URL" "$RESOURCES_DIR/kir_gen_new_mod_with_utr_extended.fasta.gz" "KIR alleles database"
+download_file "$KIR_ALLELES_URL" "$RESOURCES_DIR/kir_gen_new_mod_with_utr_extended.fasta" "KIR alleles database"
 decompress_if_needed "$RESOURCES_DIR/kir_gen_new_mod_with_utr_extended.fasta.gz"
 
 # 3. GRCh38 reference
