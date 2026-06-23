@@ -119,8 +119,8 @@ rule estimate_insert_size_new_kir:
      input:
           bam="{DATA_DIR}/{sample}/dedup_mapped_noRG.bam",
      output:
-         bam=temp("{DATA_DIR}/{sample}/mapped_filt_Chr17q25.bam"),    
-         kir=temp("{DATA_DIR}/{sample}/mapped_filt_noChr17.bam"),
+         bam="{DATA_DIR}/{sample}/mapped_filt_Chr17q25.bam",
+         kir="{DATA_DIR}/{sample}/mapped_filt_noChr17.bam",
      params:
          background_region=config["background_region"],
          background_region_chr=config["background_region"].split(":")[0]
@@ -211,8 +211,8 @@ rule proper_mapping_with_new_KIR_4:
         read2="{DATA_DIR}/{sample}/mapped_filt.read2_new_kir2.fastq",
         mmi= config["Reference"]["KIR_alleles"],
     output:
-        bam1=temp("{DATA_DIR}/{sample}/remapped1_new_kir4.bam"),
-        bam2=temp("{DATA_DIR}/{sample}/remapped2_new_kir4.bam")
+        bam1="{DATA_DIR}/{sample}/remapped1_new_kir4.bam",
+        bam2="{DATA_DIR}/{sample}/remapped2_new_kir4.bam"
     threads: min(config["threads"], 72)
     shell:
         """

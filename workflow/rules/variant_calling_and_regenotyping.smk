@@ -24,7 +24,9 @@ rule detect_var_new_kir2_no_utr4_per_error:
         vcf="{DATA_DIR}/{sample}/kir_variants_in_exons.vcf" 
      params:
         sample = "{sample}" ,
-        chr17="chr17"    
+        chr17=config["background_region"].split(":")[0],
+        start=int(config["background_region"].split(":")[1].split("-")[0]),
+        end=int(config["background_region"].split(":")[1].split("-")[1])   
      script:   
        "../scripts/variant_detection_new_kir.py"   
 

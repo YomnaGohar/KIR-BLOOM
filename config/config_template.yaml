@@ -16,8 +16,7 @@ Reference:
 Samples:
   # Output directory for results
   samples_dir: "output" #"path/to/output directory"  # e.g., 
-  # Sample specification:
-   #List samples directly (for small batches)
+  #List samples directly (for small batches)
   # option1 on is to specify fastq files
   sample_fastqs:
     # Format: "sample_name": ["path/to/read1.fastq.gz", "path/to/read2.fastq.gz"]
@@ -32,6 +31,6 @@ bwa_path: /gpfs/project/yogah100/Software/bwa-mem2-2.2.1_x64-linux/bwa-mem2  # B
 samtools_path: ~/miniforge3/envs/medaka2/bin/samtools #path to samtools
 # parameters
 threads: 4  # maximum number of threads for parallel processing
-background_region: "chr17:74000000-76000000" # coordinates on GRCh38 to use as beackground to calculate error rates and depth
+background_region: chr12:10226058-10329608 #"chr17:74000000-76000000" # coordinates on GRCh38 to use as beackground to calculate error rates and depth
 
 
