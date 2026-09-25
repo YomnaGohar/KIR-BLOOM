@@ -60,8 +60,9 @@ rule extract_reads:
                 mkdir -p {params.tmpdir}
                 # 0. Align reads
                 {bwa} mem -t {threads} {input.ref} {reads} > {output.bam}.align.sam
-                samtools view -@ {threads} -b {output.bam}.align.sam \
-                > {output.bam}.align.tmp
+                
+                samtools view -@ {threads} -b {output.bam}.align.sam  | samtools sort -@ {threads} -o {output.bam}.align.tmp
+                samtools index -@ {threads} {output.bam}.align.tmp
 
                 # 1. Reads overlapping KIR regions
                 samtools view -@ {threads} -b -L {input.bed} {output.bam}.align.tmp \
@@ -221,20 +222,113 @@ rule proper_mapping_with_new_KIR_4:
         minimap2 -ax sr  --secondary-seq --MD --eqx --secondary=yes -N 2000 -t {threads} {input.mmi} {input.read2} | samtools view -b | samtools view -hF 4 | samtools sort > {output.bam2}
         samtools index {output.bam2}
         """       
-rule pair_with_new_KIR4:
+rule tag_chr17_bam:
+    """ZP-tag the background BAM and compute insert-size stats — runs once per sample."""
     input:
-        bam1 = "{DATA_DIR}/{sample}/remapped1_new_kir4.bam",
-        bam2 = "{DATA_DIR}/{sample}/remapped2_new_kir4.bam",
-        bam  = "{DATA_DIR}/{sample}/mapped_filt_Chr17q25.bam",
-        fasta = config["Reference"]["KIR_alleles"]
+        bam="{DATA_DIR}/{sample}/mapped_filt_Chr17q25.bam"
     output:
-        bam1 = "{DATA_DIR}/{sample}/paired_new_kir_all4.bam",
-        bam2 = "{DATA_DIR}/{sample}/mapped_filt_Chr17q25_with_tag_new_kir_all4.bam",
-    threads: min(config["threads"], 72)
+        tagged_bam="{DATA_DIR}/{sample}/mapped_filt_Chr17q25_with_tag_new_kir_all4.bam",
+        stats="{DATA_DIR}/{sample}/insert_stats.json"
     params:
-          chr17=config["background_region"].split(":")[0]
+        chr17=config["background_region"].split(":")[0]
+    threads: min(config["threads"], 30)
     script:
-        "../scripts/pairing.py"  
+        "../scripts/tag_chr17.py"
+
+checkpoint split_kir_bams:
+    """
+    Split bam1 and bam2 into size-based contig chunks (target: ≤ max_chunk_gb each).
+    Uses samtools view for extraction. Snakemake re-evaluates downstream rules after
+    this checkpoint completes to discover the actual number of chunks produced.
+    """
+    input:
+        bam1="{DATA_DIR}/{sample}/remapped1_new_kir4.bam",
+        bam2="{DATA_DIR}/{sample}/remapped2_new_kir4.bam"
+    output:
+        directory("{DATA_DIR}/{sample}/kir_chunks")
+    params:
+        max_chunk_gb=config.get("max_chunk_gb", 0.5)
+    run:
+        import math, os
+        os.makedirs(output[0], exist_ok=True)
+
+        # Compute number of chunks so each is ≤ max_chunk_gb
+        max_bytes  = max(os.path.getsize(input.bam1), os.path.getsize(input.bam2))
+        n_chunks   = max(1, math.ceil(max_bytes / (params.max_chunk_gb * 1024 ** 3)))
+
+        contigs_f  = os.path.join(output[0], "contigs.txt")
+        chunks_pfx = os.path.join(output[0], "chunk_")
+
+        # Extract KIR/IAG contig names from bam1 header using samtools
+        shell(
+            "samtools view -H {input.bam1} | grep '^@SQ' | "
+            "awk '{{print $2}}' | sed 's/SN://' | grep -E '^(KIR|IAG)' > " + contigs_f
+        )
+
+        # Split contig list into n_chunks line-balanced groups
+        shell(f"split -n l/{n_chunks} {contigs_f} {chunks_pfx}")
+
+        # Build one shell command that launches all chunk extractions in parallel
+        chunk_files = sorted(
+            f for f in os.listdir(output[0]) if f.startswith("chunk_")
+        )
+        cmds = []
+        for i, chunk_file in enumerate(chunk_files):
+            chunk_path = os.path.join(output[0], chunk_file)
+            bam1_out   = os.path.join(output[0], f"bam1_chunk{i}.bam")
+            bam2_out   = os.path.join(output[0], f"bam2_chunk{i}.bam")
+            # Each pair of samtools view calls is backgrounded with &
+            # {input.bam1} / {input.bam2} are substituted by Snakemake's shell()
+            cmds.append(
+                "samtools view -b {input.bam1} "
+                "$(cat " + chunk_path + " | tr '\\n' ' ') > " + bam1_out + " &"
+            )
+            cmds.append(
+                "samtools view -b {input.bam2} "
+                "$(cat " + chunk_path + " | tr '\\n' ' ') > " + bam2_out + " &"
+            )
+        # wait blocks until every background job finishes
+        cmds.append("wait")
+        shell("\n".join(cmds))
+
+        # Remove temporary contig list and chunk files
+        shell("rm -f " + contigs_f + " " + chunks_pfx + "*")
+
+def _kir_chunk_ids(wildcards):
+    """Return chunk indices discovered after the split_kir_bams checkpoint runs."""
+    chunks_dir = checkpoints.split_kir_bams.get(**wildcards).output[0]
+    ids, = glob_wildcards(os.path.join(chunks_dir, "bam1_chunk{chunk}.bam"))
+    return ids
+
+rule pair_kir_chunk:
+    """Pair reads for one contig chunk — all chunks run in parallel."""
+    input:
+        bam1="{DATA_DIR}/{sample}/kir_chunks/bam1_chunk{chunk}.bam",
+        bam2="{DATA_DIR}/{sample}/kir_chunks/bam2_chunk{chunk}.bam",
+        stats="{DATA_DIR}/{sample}/insert_stats.json",
+        fasta=config["Reference"]["KIR_alleles"]
+    output:
+        bam1=temp("{DATA_DIR}/{sample}/kir_chunks/paired_chunk{chunk}.bam")
+    wildcard_constraints:
+        chunk="\d+"
+    threads: 4
+    script:
+        "../scripts/pairing.py"
+
+rule merge_kir_pairs:
+    """Merge all per-chunk paired BAMs into the final output."""
+    input:
+        bams=lambda wc: expand(
+            "{DATA_DIR}/{sample}/kir_chunks/paired_chunk{chunk}.bam",
+            DATA_DIR=wc.DATA_DIR,
+            sample=wc.sample,
+            chunk=_kir_chunk_ids(wc)
+        )
+    output:
+        "{DATA_DIR}/{sample}/paired_new_kir_all4.bam"
+    threads: min(config["threads"], 30)
+    shell:
+        "samtools merge -@ {threads} -f {output} {input.bams}"
 rule index_with_new_KIR4:
      input:
           "{DATA_DIR}/{sample}/paired_new_kir_all4.bam"
