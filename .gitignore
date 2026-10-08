@@ -1,3 +1,7 @@
+# Personal configuration files (keep the shared template)
+/config/*.yaml
+!/config/config_template.yaml
+
 config/configa.yaml
 config/configb.yaml
 config/configc.yaml
@@ -11,7 +15,15 @@ config/configd_2.yaml
 config/configv_2.yaml
 config/configeval_2.yaml
 config/configeval_local.yaml
-
+config/configd_2.yaml
+config/configv_2.yaml
+config/configeval_2.yaml
+config/config_CEU.yaml
+config/config_CEU_2.yaml
+config/config_CEU_3.yaml
+config/config_YR1.yaml
+config/config_YRI_2.yaml
+config/config_YRI_3.yaml
 
 .snakemake
 workflow/rules/t1k.smk
