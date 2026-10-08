@@ -27,6 +27,7 @@ std_insert  = _stats["std_insert"]
 
 bam1_path = snakemake.input.bam1
 bam2_path = snakemake.input.bam2
+chunk_id = snakemake.wildcards.chunk  # prefix TP tags so they stay unique after merging chunks
 
 def collect_read_info(bam_path):
     read_info_dict = defaultdict(list)
@@ -106,7 +107,7 @@ with pysam.AlignmentFile(snakemake.output.bam1, "wb", header=header) as bam_out:
             a1.query_qualities = r1["qual"]
             a1.flag = 99 if r1["strand"] == '+' else 83
             a1.set_tag("NM", r1["NM"])
-            tag = f"TAG{tag_counter}"
+            tag = f"TAG{chunk_id}_{tag_counter}"
             a1.set_tag("TP", tag)
 
             a2 = pysam.AlignedSegment()
@@ -154,7 +155,7 @@ with pysam.AlignmentFile(snakemake.output.bam1, "wb", header=header) as bam_out:
             a1.is_proper_pair = False
             a1.mate_is_unmapped = True
             a1.template_length = 0
-            tag = f"TAG{tag_counter}"
+            tag = f"TAG{chunk_id}_{tag_counter}"
             a1.set_tag("TP", tag)
             bam_out.write(a1)
         elif r2:
@@ -173,7 +174,7 @@ with pysam.AlignmentFile(snakemake.output.bam1, "wb", header=header) as bam_out:
             a1.is_proper_pair = False
             a1.mate_is_unmapped = True
             a1.template_length = 0
-            tag = f"TAG{tag_counter}"
+            tag = f"TAG{chunk_id}_{tag_counter}"
             a1.set_tag("TP", tag)
             bam_out.write(a1)
         tag_counter += 1

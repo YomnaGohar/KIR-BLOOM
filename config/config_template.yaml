@@ -29,7 +29,9 @@ Samples:
     #"ERR3989454": ["/gpfs/project/yogah100/cram_files/ERR3989454/NA19983.final.cram"]
     #"ERR3242195": ["/gpfs/project/yogah100/cram_files/ERR3242195/HG01890.final.cram"]
     #"ERR3242132": ["/gpfs/project/yogah100/cram_files/evaluation/ERR3242132/HG00864.final.cram"]
-    "DIV5621": ["/gpfs/project/yogah100/Ivan_samples/DIV5621_23154FL-33-01-27_S0_L001_R1_001.fastq.gz", "/gpfs/project/yogah100/Ivan_samples/DIV5621_23154FL-33-01-27_S0_L001_R2_001.fastq.gz"]
+    "ERR3241684": ["/gpfs/project/yogah100/cram_files/evaluation/ERR3241684/HG00513.final.cram"]
+
+    #"DIV5621": ["/gpfs/project/yogah100/Ivan_samples/DIV5621_23154FL-33-01-27_S0_L001_R1_001.fastq.gz", "/gpfs/project/yogah100/Ivan_samples/DIV5621_23154FL-33-01-27_S0_L001_R2_001.fastq.gz"]
 
 
 # External tools (required)
@@ -38,6 +40,6 @@ samtools_path: ~/miniforge3/envs/medaka2/bin/samtools #path to samtools
 # parameters
 threads: 10  # maximum number of threads for parallel processing
 max_chunk_gb: 0.5  # target maximum size (GB) per contig chunk for parallel pairing
-background_region: chr12:10226058-10329608 #"chr17:74000000-76000000" # coordinates on GRCh38 to use as beackground to calculate error rates and depth
+background_region: "chr17:74000000-76000000" # chr12:10226058-10329608 # coordinates on GRCh38 to use as beackground to calculate error rates and depth
 
 

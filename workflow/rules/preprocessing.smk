@@ -311,7 +311,7 @@ rule pair_kir_chunk:
         bam1=temp("{DATA_DIR}/{sample}/kir_chunks/paired_chunk{chunk}.bam")
     wildcard_constraints:
         chunk="\d+"
-    threads: 4
+    threads:  min(config["threads"], 30)
     script:
         "../scripts/pairing.py"
 

@@ -1,0 +1,44 @@
+Reference:
+  fasta:  "/gpfs/project/yogah100/cram_files/resources/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+  KIR_regions_bed: "/gpfs/project/yogah100/cram_files/resources/kir_regions.bed" # Kir regions coordinate and Chr17 
+  fasta_2: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025_no_mod_to_3DL3035/ref_with_utr_extended.fa"
+  KIR_alleles: '/gpfs/project/yogah100/cram_files/resources/kir_reference_2025_no_mod_to_3DL3035/kir_gen_new_mod_with_utr_extended.fasta'
+  KIR_alleles_bed: "/gpfs/project/yogah100/kir/resources/kir_reference_2025/kir_allele_names_new_kir_only.bed"
+  exon_bed: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025_no_mod_to_3DL3035/annotations_mod_with_utr_extended_exon.bed"
+  intron_bed: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025_no_mod_to_3DL3035/annotations_mod_with_utr_extended_intron.bed"
+  utr_bed: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025_no_mod_to_3DL3035/annotations_mod_with_utr_extended_utr.bed"
+  msa_path: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025_no_mod_to_3DL3035/msa_after_utr_extension"
+  msa_mappings_path: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025_no_mod_to_3DL3035/msa_after_utr_extension/msa_mappings"
+  Allele_list: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025/Allelelist.txt" 
+  rep: "/gpfs/project/yogah100/cram_files/resources/kir_reference_2025/allele_representatives_new_kir.pkl" 
+Samples:
+  samples_dir: "/gpfs/project/yogah100/1000Genome" #output directory
+  sample_fastqs:  
+        "NA11933": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA11933.final.cram"]
+        "NA12043": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12043.final.cram"]
+        "NA12044": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12044.final.cram"]
+        "NA12045": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12045.final.cram"]
+        "NA12046": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12046.final.cram"]
+        "NA12144": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12144.final.cram"]
+        "NA12154": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12154.final.cram"]
+        "NA12155": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12155.final.cram"]
+        "NA07048": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA07048.final.cram"]
+        "NA11920": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA11920.final.cram"]
+        "NA11932": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA11932.final.cram"]
+        "NA11994": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA11994.final.cram"]
+        "NA11995": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA11995.final.cram"]
+        "NA12003": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12003.final.cram"]
+        "NA12004": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12004.final.cram"]
+        "NA12005": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12005.final.cram"]
+        "NA12006": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12006.final.cram"]
+        "NA12234": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12234.final.cram"]
+        "NA12878": ["/gpfs/project/yogah100/1000Genome/1000G/CEU/NA12878.final.cram"]
+
+
+# parameters
+threads: 20  # maximum number of threads for parallel processing
+max_chunk_gb: 0.5  # target maximum size (GB) per contig chunk for parallel pairing
+background_region: "chr17:74000000-76000000" # chr12:10226058-10329608 #
+bwa_path:  /gpfs/project/yogah100/Software/bwa-mem2-2.2.1_x64-linux/bwa-mem2
+immuannot: /gpfs/project/yogah100/Software/Immuannot/scripts.pub.v3/immuannot.sh
+samtools_path: /home/yogah100/miniforge3/envs/medaka2/bin/samtools
